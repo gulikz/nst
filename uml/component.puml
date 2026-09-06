@@ -1,0 +1,59 @@
+@startuml garanty_component
+' Проект «Гаранты»: компонентная диаграмма (строгий UML)
+' Рендер: plantuml.com или расширение PlantUML в VS Code
+skinparam componentStyle rectangle
+skinparam shadowing false
+title Гаранты — архитектура компонентов и уровни доступа к данным
+
+package "Уровень 1 — законно сейчас" as T1 {
+  [АБС и процессинг банка] as ABS
+  [Кредитное бюро ГКБ / ПКБ] as CB
+  [Публичные реестры] as PUB
+  [Реестр участия в юрлицах e_034] as UL
+}
+package "Уровень 2 — исполнительное производство" as T2 {
+  [ЧСИ: счета, доход, имущество] as CHSI
+  [АИС ОИП] as OIP
+}
+package "Уровень 3 — только по суду" as T3 {
+  [Данные третьих лиц и родственников] as THIRD
+  [Реверс сделок / следствие] as REV
+}
+
+package "Платформа Гаранты" {
+  [Приём данных (ETL / CDC / событие ПКБ)] as ING
+  database "Битемпоральное хранилище (as-of)" as BT
+  database "Витрина признаков" as FS
+  [Слой правил (правовые шлюзы)] as RULES
+  [Модели: expected_recovery, dissipation_risk, capacity] as ML
+  [Управление делами] as CASE
+  [Очередь алертов] as ALERT
+  [Генератор запросов в ЧСИ и суд] as REQ
+  [Журнал доступа] as LOG
+}
+
+ABS --> ING
+CB --> ING
+PUB --> ING
+UL --> ING
+CHSI ..> ING : после производства
+OIP ..> ING
+THIRD ..> ING : после акта суда
+REV ..> ING
+
+ING --> BT
+BT --> FS
+FS --> RULES
+RULES --> ML
+ML --> CASE
+ML --> ALERT
+RULES --> CASE
+CASE --> REQ
+ALERT --> REQ
+REQ ..> T2 : разблокирует
+REQ ..> T3 : разблокирует
+
+ING ..> LOG
+FS ..> LOG
+RULES ..> LOG
+@enduml
